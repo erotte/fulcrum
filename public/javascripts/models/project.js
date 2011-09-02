@@ -14,6 +14,12 @@ var Project = Backbone.Model.extend({
     this.users = new UserCollection;
     this.users.url = this.url() + '/users';
     this.users.project = this;
+
+    this.iterations = [];
+  },
+
+  defaults: {
+    default_velocity: 10
   },
 
   url: function() {
@@ -80,6 +86,17 @@ var Project = Backbone.Model.extend({
     return Math.floor((days_apart / (this.get('iteration_length') * 7)) + 1);
   },
 
+  getDateForIterationNumber: function(iteration_number) {
+    // The difference betweeen the start date in days.  Iteration length is
+    // in weeks.
+    var difference = (7 * this.get('iteration_length')) * (iteration_number - 1);
+    var start_date = this.startDate();
+    var iteration_date = new Date(start_date);
+
+    iteration_date.setDate(start_date.getDate() + difference);
+    return iteration_date;
+  },
+
   currentIterationNumber: function() {
     return this.getIterationNumberForDate(new Date());
   },
@@ -112,5 +129,33 @@ var Project = Backbone.Model.extend({
       }
       return new Date(start_date - day_difference * this.milliseconds_in_a_day);
     }
+  },
+
+  velocity: function() {
+    if (this.doneIterations().length === 0) {
+      return this.get('default_velocity');
+    } else {
+      // TODO Make number of iterations configurable
+      var numIterations = 3;
+      var iterations = this.doneIterations();
+      
+      // Take a maximum of numIterations from the end of the array
+      if (iterations.length > numIterations) {
+        iterations = iterations.slice(iterations.length - numIterations);
+      }
+
+      var pointsArray = _.invoke(iterations, 'points');
+      var sum = _.reduce(pointsArray, function(memo, points) {
+        return memo + points;
+      }, 0);
+      var velocity = Math.floor(sum / pointsArray.length);
+      return velocity < 1 ? 1 : velocity;
+    }
+  },
+
+  doneIterations: function() {
+    return _.select(this.iterations, function(iteration) {
+      return iteration.get('column') === "#done";
+    });
   }
 });

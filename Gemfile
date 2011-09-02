@@ -17,7 +17,14 @@ gem 'fastercsv', '1.5.3', :platforms => :ruby_18
 # gem 'unicorn'
 
 # Deploy with Capistrano
-# gem 'capistrano'
+# gem 'capistrano' 
+
+# deployment tools
+group :rake do
+  gem 'vlad'
+  gem 'vlad-git'
+  gem 'vlad-extras'
+end
 
 # To use debugger
 # gem 'ruby-debug'

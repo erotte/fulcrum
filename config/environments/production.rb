@@ -36,7 +36,17 @@ Fulcrum::Application.configure do
 
   # Disable delivery errors, bad email addresses will be ignored
   # config.action_mailer.raise_delivery_errors = false
-  config.action_mailer.default_url_options = { :host => 'fulcrum.heroku.com' }
+  config.action_mailer.default_url_options = { :host => 'fulcrum.shoesify.com' }
+  config.action_mailer.delivery_method = :sendmail
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.raise_delivery_errors = false
+  config.action_mailer.default :charset => "utf-8"
+  
+  # config.action_mailer.smtp_settings = {
+  #  :address => "localhost" ,
+  #  :port => 25,
+  #  :domain => "shoesify.com"
+  # }
 
   # Enable threaded mode
   # config.threadsafe!

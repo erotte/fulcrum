@@ -6,7 +6,16 @@ gem 'rails', '3.0.9'
 # gem 'rails', :git => 'git://github.com/rails/rails.git'
 
 # gem 'sqlite3-ruby', :require => 'sqlite3'
-gem 'mysql2', '0.2.6' 
+# gem 'mysql2', '0.2.6' 
+# SQLite
+# gem 'sqlite3-ruby', :require => 'sqlite3'
+
+# MySQL
+# gem 'mysql2', '~> 0.2.6'
+
+# PostgreSQL
+# gem 'pg'
+
 gem 'devise', '1.2.1'
 gem 'cancan', '1.6.1'
 gem 'transitions', '0.0.9', :require => ["transitions", "active_record/transitions"]

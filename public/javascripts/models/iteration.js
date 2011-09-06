@@ -26,11 +26,24 @@ var Iteration = Backbone.Model.extend({
   // Returns true if this iteration has enough points free for a given
   // story.  Only valid for backlog iterations.
   canTakeStory: function(story) {
+    if (this.points() === 0) {
+      return true;
+    }
+
     if (story.get('story_type') === 'feature') {
       return story.get('estimate') <= this.availablePoints();
     } else {
       return true;
     }
+  },
+
+  // Report how many points this iteration overflows by.  For example, if
+  // the iteration maximum points is 2, and it has a single 5 point story,
+  // its overflow will be 3 points.  Will return 0 if the iteration has
+  // less than or equal to its maximum points.
+  overflowsBy: function() {
+    var difference = this.points() - this.get('maximum_points');
+    return (difference < 0) ? 0 : difference;
   }
 
 });

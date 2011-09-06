@@ -37,7 +37,7 @@ set :repository, "git@github.com:erotte/#{application}.git"
 # set :revision, "origin/develop"
 set :bundle_cmd, "/usr/local/rvm/gems/ree-1.8.7-2011.03/bin/bundle"
 set :web_command, "/etc/init.d/nginx"
-# set :symlinks, { 'config/database.yml' => 'config/database.yml' }
+set :symlinks, { 'config/database.yml' => 'config/database.yml' }
 
 role :app, domain
 role :web, domain

@@ -11,7 +11,7 @@ gem 'rails', '3.0.9'
 # gem 'sqlite3-ruby', :require => 'sqlite3'
 
 # MySQL
-# gem 'mysql2', '~> 0.2.6'
+gem 'mysql2', '~> 0.2.6'
 
 # PostgreSQL
 # gem 'pg'

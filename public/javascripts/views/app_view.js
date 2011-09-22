@@ -10,9 +10,16 @@ var AppView = Backbone.View.extend({
     window.Project.stories.fetch();
   },
 
-  addOne: function(story) {
+  addOne: function(story, column) {
+    // If column is blank determine it from the story.  When the add event
+    // is bound on a collection, the callback send the collection as the
+    // second argument, so also check that column is a string and not an
+    // object for those cases.
+    if (typeof column === 'undefined' || typeof column !== 'string') {
+      column = story.column();
+    }
     var view = new StoryView({model: story});
-    $(story.column()).append(view.render().el);
+    $(column).append(view.render().el);
   },
 
   addAll: function() {
@@ -54,7 +61,8 @@ var AppView = Backbone.View.extend({
     // Fill in any remaining empty iterations in the done column
     var currentIteration = new Iteration({
       'number': window.Project.currentIterationNumber(),
-      'stories': window.Project.stories.column('#in_progress')
+      'stories': window.Project.stories.column('#in_progress'),
+      'maximum_points': window.Project.velocity()
     });
     this.fillInEmptyIterations('#done', last_iteration, currentIteration);
 
@@ -63,7 +71,9 @@ var AppView = Backbone.View.extend({
     //
     // FIXME - Show completed/total points
     $('#in_progress').append(that.iterationDiv(currentIteration));
-    _.each(window.Project.stories.column('#in_progress'), this.addOne);
+    _.each(window.Project.stories.column('#in_progress'), function(story) {
+      that.addOne(story);
+    });
 
 
 
@@ -76,6 +86,12 @@ var AppView = Backbone.View.extend({
       'maximum_points': window.Project.velocity()
     });
     _.each(window.Project.stories.column('#backlog'), function(story) {
+
+      if (currentIteration.canTakeStory(story)) {
+        currentIteration.get('stories').push(story);
+        that.addOne(story, '#in_progress');
+        return;
+      }
 
       if (!backlogIteration.canTakeStory(story)) {
         // The iteration is full, render it
@@ -113,7 +129,9 @@ var AppView = Backbone.View.extend({
     });
     backlogIteration.set({'rendered': true});
 
-    _.each(window.Project.stories.column('#chilly_bin'), this.addOne);
+    _.each(window.Project.stories.column('#chilly_bin'), function(story) {
+      that.addOne(story)
+    });
   },
 
   // Creates a set of empty iterations in column, with iteration numbers

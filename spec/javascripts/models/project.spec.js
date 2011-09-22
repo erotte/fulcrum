@@ -24,14 +24,14 @@ describe('Project model', function() {
 
     it('should set up a story collection', function() {
       expect(this.project.stories).toBeDefined();
-      expect(this.project.stories.url).toEqual('/projects/999/stories')
+      expect(this.project.stories.url).toEqual('/projects/999/stories');
       // Sets up a reference on the collection to itself
       expect(this.project.stories.project).toBe(this.project);
     });
 
     it('should set up a user collection', function() {
       expect(this.project.users).toBeDefined();
-      expect(this.project.users.url).toEqual('/projects/999/users')
+      expect(this.project.users.url).toEqual('/projects/999/users');
       // Sets up a reference on the collection to itself
       expect(this.project.users.project).toBe(this.project);
     });
@@ -167,25 +167,25 @@ describe('Project model', function() {
     it("should return the date for an iteration number", function() {
 
       // This is a Monday
-      this.project.set({start_date: "2011-07-25"});
+      this.project.set({start_date: "2011/07/25"});
 
-      expect(this.project.getDateForIterationNumber(1)).toEqual(new Date("2011-07-25"));
-      expect(this.project.getDateForIterationNumber(5)).toEqual(new Date("2011-08-22"));
+      expect(this.project.getDateForIterationNumber(1)).toEqual(new Date("2011/07/25"));
+      expect(this.project.getDateForIterationNumber(5)).toEqual(new Date("2011/08/22"));
 
       this.project.set({iteration_length: 4});
-      expect(this.project.getDateForIterationNumber(1)).toEqual(new Date("2011-07-25"));
-      expect(this.project.getDateForIterationNumber(5)).toEqual(new Date("2011-11-14"));
+      expect(this.project.getDateForIterationNumber(1)).toEqual(new Date("2011/07/25"));
+      expect(this.project.getDateForIterationNumber(5)).toEqual(new Date("2011/11/14"));
 
       // Sunday
       this.project.set({iteration_start_day: 0});
-      expect(this.project.getDateForIterationNumber(1)).toEqual(new Date("2011-07-24"));
-      expect(this.project.getDateForIterationNumber(5)).toEqual(new Date("2011-11-13"));
+      expect(this.project.getDateForIterationNumber(1)).toEqual(new Date("2011/07/24"));
+      expect(this.project.getDateForIterationNumber(5)).toEqual(new Date("2011/11/13"));
 
       // Tuesday - This should evaluate to the Tuesday before the explicitly
       // set start date (Monday)
       this.project.set({iteration_start_day: 2});
-      expect(this.project.getDateForIterationNumber(1)).toEqual(new Date("2011-07-19"));
-      expect(this.project.getDateForIterationNumber(5)).toEqual(new Date("2011-11-08"));
+      expect(this.project.getDateForIterationNumber(1)).toEqual(new Date("2011/07/19"));
+      expect(this.project.getDateForIterationNumber(5)).toEqual(new Date("2011/11/08"));
     });
 
     it("should initialize with an array of iterations", function() {
@@ -220,8 +220,8 @@ describe('Project model', function() {
 
     it("should return the start date", function() {
       // Date is a Monday, and day 1 is Monday
-      this.project.set({start_date: "2011/07/25",iteration_start_day: 1});
-      expect(this.project.startDate()).toEqual(new Date("2011/07/25"));
+      this.project.set({start_date: "2011/09/12",iteration_start_day: 1});
+      expect(this.project.startDate()).toEqual(new Date("2011/09/12"));
 
       // If the project start date has been explicitly set to a Thursday, but
       // the iteration_start_day is Monday, the start date should be the Monday
@@ -241,6 +241,8 @@ describe('Project model', function() {
       // FIXME - Stubbing Date is not working
       var expected_date = new Date('2011/07/23');
       var fake_today = new Date('2011/07/29');
+      // Stop JSHINT complaining about overriding Date
+      /*global Date: true*/
       orig_date = Date;
       Date = sinon.stub().returns(fake_today);
       this.project.unset('start_date');

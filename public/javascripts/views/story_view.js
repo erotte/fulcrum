@@ -180,7 +180,6 @@ var StoryView = FormView.extend({
   },
 
   saveEdit: function() {
-    this.model.set(this.changed_attributes);
     this.disableForm();
 
     var that = this;
@@ -227,7 +226,9 @@ var StoryView = FormView.extend({
 
       div = this.make('div');
       $(div).append(this.submit());
-      if (!this.model.isNew()) $(div).append(this.destroy());
+      if (!this.model.isNew()) {
+        $(div).append(this.destroy());
+      }
       $(div).append(this.cancel());
       $(this.el).append(div);
 

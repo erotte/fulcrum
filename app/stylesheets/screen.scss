@@ -131,6 +131,25 @@ html.stories, html.stories body, html.stories div#main {
   height: 100%;
 }
 
+#column-toggles {
+  float: right;
+}
+
+#column-toggles a {
+  margin: none;
+  padding: 3px;
+  color: white;
+  background-color: $darkgrey;
+  @include border-radius(3px);
+  text-decoration: none;
+  text-shadow: none;
+}
+
+#column-toggles a.pressed {
+  color: $darkgrey;
+  background-color: #cecece;
+}
+
 /* stories table */
 table.stories {
   width: 100%;
@@ -156,6 +175,14 @@ table.stories th {
   padding: 0.2em;
   font-weight: bold;
   @include border-radius(5px 5px 0 0);
+  a.toggle-column{
+    float: right;
+    padding: 0px 5px 1px;
+    cursor: pointer;
+    &:hover{
+      color:$aluminium-3;
+    }
+  }
 }
 
 /* Story types */
@@ -169,6 +196,13 @@ div.story {
 }
 div.story:hover {
   background-color: #ddd;
+}
+div.story input[type=text],
+div.story textarea {
+  width: 99%;
+}
+div.story textarea {
+  height: 50px;
 }
 
 div.story-icons {
@@ -205,42 +239,42 @@ span.estimate {
 }
 
 span.estimate_1 {
-  @include background(linear-gradient(bottom, 
+  @include background(linear-gradient(bottom,
       $orange 12.5%,
       white 12.5%));
 }
 span.estimate_2 {
-  @include background(linear-gradient(bottom, 
+  @include background(linear-gradient(bottom,
       $orange 25%,
       white 25%));
 }
 span.estimate_3 {
-  @include background(linear-gradient(bottom, 
+  @include background(linear-gradient(bottom,
       $orange 37.5%,
       white 37.5%));
 }
 span.estimate_4 {
-  @include background(linear-gradient(bottom, 
+  @include background(linear-gradient(bottom,
       $orange 50%,
       white 50%));
 }
 span.estimate_5 {
-  @include background(linear-gradient(bottom, 
+  @include background(linear-gradient(bottom,
       $orange 62.5%,
       white 62.5%));
 }
 span.estimate_6 {
-  @include background(linear-gradient(bottom, 
+  @include background(linear-gradient(bottom,
       $orange 75%,
       white 75%));
 }
 span.estimate_7 {
-  @include background(linear-gradient(bottom, 
+  @include background(linear-gradient(bottom,
       $orange 87.5%,
       white 87.5%));
 }
 span.estimate_8 {
-  @include background(linear-gradient(bottom, 
+  @include background(linear-gradient(bottom,
       $orange 100%,
       white 100%));
 }
@@ -274,30 +308,40 @@ span.estimate_8 {
 }
 
 .state-actions input {
-  padding: 0;
+  margin: 0;
+  padding: 0 0.3em;
   @include border-radius(3px);
   border: 1px solid #333;
   cursor: pointer;
   font-size: small;
+  font-weight: bold;
+  color: white;
+  @include background(linear-gradient(top, $aluminium-3, $aluminium-3*0.75));
+  border-color: $aluminium-5;
+  text-shadow:  $aluminium-5 0 1px 0;
 }
 
-.state-actions input.start {
-  background-color: $aluminium-2;
-}
 .state-actions input.finish {
-  background-color: $sky-blue-1;
+  @include background(linear-gradient(top, $sky-blue-1, $sky-blue-1*0.75));
+  border-color: $sky-blue-3;
 }
 .state-actions input.deliver {
-  background-color: $butter-2;
+  @include background(linear-gradient(top, $butter-1, $butter-1*0.75));
+  border-color:     $butter-3;
 }
 .state-actions input.accept {
-  background-color: $chameleon-2;
+  @include background(linear-gradient(top, $chameleon-2, $chameleon-2*0.75));
+  border-color: $chameleon-3;
 }
 .state-actions input.reject {
-  background-color: $scarlet-red-2;
+  @include background(linear-gradient(top, $scarlet-red-1, $scarlet-red-1*0.75));
+  border-color:     $scarlet-red-3;
 }
 .state-actions input.restart {
-  background: $scarlet-red-2 url('/images/redo.png') no-repeat;
+  @include background(url('/images/redo.png'),
+                      linear-gradient(top, $scarlet-red-1, $scarlet-red-1*0.75));
+  background-repeat: no-repeat;
+  border-color: $scarlet-red-3;
   padding-left: 16px;
 }
 
@@ -362,3 +406,5 @@ a.button:hover {
   color: white;
   text-decoration: underline;
 }
+
+

@@ -80,6 +80,10 @@ describe('Story model', function() {
       expect(this.story.get('state')).toEqual('started');
     });
 
+  });
+
+  describe("setAcceptedAt", function() {
+
     it("should set accepted at to today's date when accepted", function() {
       var today = new Date();
       today.setHours(0);
@@ -96,7 +100,6 @@ describe('Story model', function() {
       this.story.accept();
       expect(this.story.get('accepted_at')).toEqual("2001/01/01");
     });
-
   });
 
   describe('estimable', function() {
@@ -229,6 +232,31 @@ describe('Story model', function() {
       expect(spy).toHaveBeenCalledWith(999);
     });
 
+    it("should get it's requester", function() {
+
+      // Should return undefined if the story does not have an owner
+      var stub = sinon.stub(this.story.collection.project.users, "get");
+      var dummyUser = {};
+      stub.withArgs(undefined).returns(undefined);
+      stub.withArgs(999).returns(dummyUser);
+
+      var requested_by = this.story.requested_by();
+      expect(stub).toHaveBeenCalledWith(undefined);
+      expect(requested_by).toBeUndefined();
+
+      this.story.set({'requested_by_id': 999});
+      requested_by = this.story.requested_by();
+      expect(requested_by).toEqual(dummyUser);
+      expect(stub).toHaveBeenCalledWith(999);
+    });
+
+    it("should return a readable created_at", function() {
+
+      this.story.set({'created_at': "2011/09/19 02:25:56 +0000"});
+      expect(this.story.created_at()).toBe("19 Sep 2011, 2:25pm");
+
+    });
+
     it("should be assigned to the current user when started", function() {
 
       expect(this.story.get('state')).toEqual('unscheduled');
@@ -245,12 +273,20 @@ describe('Story model', function() {
   describe("details", function() {
 
     // If the story has details other than the title, e.g. description
-    it("should return if the story has details", function() {
+    it("should return true the story has a description", function() {
 
       expect(this.story.hasDetails()).toBeFalsy();
 
       this.story.set({description: "Test description"});
 
+      expect(this.story.hasDetails()).toBeTruthy();
+
+    });
+
+    it("should return true if the story has saved notes", function() {
+
+      expect(this.story.hasDetails()).toBeFalsy();
+      this.story.hasNotes = sinon.stub().returns(true);
       expect(this.story.hasDetails()).toBeTruthy();
 
     });
@@ -263,6 +299,60 @@ describe('Story model', function() {
       this.story.collection.project.getIterationNumberForDate = sinon.stub().returns(999);
       this.story.set({accepted_at: "2011/07/25", state: "accepted"});
       expect(this.story.iterationNumber()).toEqual(999);
+    });
+
+  });
+
+  describe("labels", function() {
+
+    it("should return an empty array if labels undefined", function() {
+      expect(this.story.get('labels')).toBeUndefined();
+      expect(this.story.labels()).toEqual([]);
+    });
+
+    it("should return an array of labels", function() {
+      this.story.set({labels: "foo,bar"});
+      expect(this.story.labels()).toEqual(["foo","bar"]);
+    });
+
+    it("should remove trailing and leading whitespace when spliting labels", function() {
+      this.story.set({labels: "foo , bar , baz"});
+      expect(this.story.labels()).toEqual(["foo","bar","baz"]);
+    });
+
+  });
+
+  describe("notes", function() {
+
+    it("should default with an empty notes collection", function() {
+      expect(this.story.notes.length).toEqual(0);
+    });
+
+    it("should set the right notes collection url", function() {
+      expect(this.story.notes.url()).toEqual('/foo/999/notes');
+    });
+
+    it("should set a notes collection", function() {
+      var story = new Story({
+        notes: [{"note":{"text": "Dummy note"}}]
+      });
+
+      expect(story.notes.length).toEqual(1);
+    });
+
+    describe("hasNotes", function() {
+
+      it("returns true if it has saved notes", function() {
+        expect(this.story.hasNotes()).toBeFalsy();
+        this.story.notes.add({id: 999, note: "Test note"});
+        expect(this.story.hasNotes()).toBeTruthy();
+      });
+
+      it("returns false if it has unsaved notes", function() {
+        this.story.notes.add({note: "Unsaved note"});
+        expect(this.story.hasNotes()).toBeFalsy();
+      });
+
     });
 
   });

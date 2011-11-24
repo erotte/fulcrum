@@ -26,6 +26,31 @@ var Project = Backbone.Model.extend({
     return '/projects/' + this.id;
   },
 
+  // The ids of the columns, in the order that they appear by story weight
+  columnIds: ['#done', '#in_progress', '#backlog', '#chilly_bin'],
+
+  // Return an array of the columns that appear after column, or an empty
+  // array if the column is the last
+  columnsAfter: function(column) {
+    var index = _.indexOf(this.columnIds, column);
+    if (index === -1) {
+      // column was not found in the array
+      throw column.toString() + ' is not a valid column';
+    }
+    return this.columnIds.slice(index + 1);
+  },
+
+  // Return an array of the columns that appear before column, or an empty
+  // array if the column is the first
+  columnsBefore: function(column) {
+    var index = _.indexOf(this.columnIds, column);
+    if (index === -1) {
+      // column was not found in the array
+      throw column.toString() + ' is not a valid column';
+    }
+    return this.columnIds.slice(0, index);
+  },
+
   // This method is triggered when the last_changeset_id attribute is changed,
   // which indicates there are changed or new stories on the server which need
   // to be loaded.
@@ -165,5 +190,104 @@ var Project = Backbone.Model.extend({
     return _.select(this.iterations, function(iteration) {
       return iteration.get('column') === "#done";
     });
+  },
+
+  rebuildIterations: function() {
+
+    //
+    // Done column
+    //
+    var that = this;
+
+    // Clear the project iterations
+    this.iterations = [];
+
+    var doneIterations = _.groupBy(this.stories.column('#done'),
+                                    function(story) {
+                                      return story.iterationNumber();
+                                    });
+
+    // groupBy() returns an object with keys of the iteration number
+    // and values of the stories array.  Ensure the keys are sorted
+    // in numeric order.
+    var doneNumbers = _.keys(doneIterations).sort(function(left, right) {
+      return (left - right);
+    });
+
+    _.each(doneNumbers, function(iterationNumber) {
+      var stories = doneIterations[iterationNumber];
+      var iteration = new Iteration({
+        'number': iterationNumber, 'stories': stories, column: '#done'
+      });
+
+      that.appendIteration(iteration, '#done');
+
+    });
+
+    var currentIteration = new Iteration({
+      'number': this.currentIterationNumber(),
+      'stories': this.stories.column('#in_progress'),
+      'maximum_points': this.velocity(), 'column': '#in_progress'
+    });
+
+    this.appendIteration(currentIteration, '#done');
+
+
+
+    //
+    // Backlog column
+    //
+    var backlogIteration = new Iteration({
+      'number': currentIteration.get('number') + 1,
+      'column': '#backlog', 'maximum_points': this.velocity()
+    });
+    this.appendIteration(backlogIteration, '#backlog');
+
+    _.each(this.stories.column('#backlog'), function(story) {
+
+      // The in progress iteration usually needs to be filled with the first
+      // few stories from the backlog, unless the points total of the stories
+      // in progress already equal or exceed the project velocity
+      if (currentIteration.canTakeStory(story)) {
+        currentIteration.get('stories').push(story);
+        return;
+      }
+
+      if (!backlogIteration.canTakeStory(story)) {
+
+        // Iterations sometimes 'overflow', i.e. an iteration may contain a
+        // 5 point story but the project velocity is 1.  In this case, the
+        // next iteration that can have a story added is the current + 4.
+        var nextNumber = backlogIteration.get('number') + 1 + Math.ceil(backlogIteration.overflowsBy() / that.velocity());
+
+        backlogIteration = new Iteration({
+          'number': nextNumber, 'column': '#backlog',
+          'maximum_points': that.velocity()
+        });
+
+        that.appendIteration(backlogIteration, '#backlog');
+      }
+
+      backlogIteration.get('stories').push(story);
+    });
+
+    _.each(this.iterations, function(iteration) {
+      iteration.project = that;
+    });
+  },
+
+  // Adds an iteration to the project.  Creates empty iterations to fill any
+  // gaps between the iteration number and the last iteration number added.
+  appendIteration: function(iteration, columnForMissingIterations) {
+
+    var lastIteration = _.last(this.iterations);
+
+    // If there is a gap between the last iteration and this one, fill
+    // the gap with empty iterations
+    this.iterations = this.iterations.concat(
+      Iteration.createMissingIterations(columnForMissingIterations, lastIteration, iteration)
+    );
+
+    this.iterations.push(iteration);
   }
 });

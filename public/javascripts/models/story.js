@@ -3,8 +3,13 @@ var Story = Backbone.Model.extend({
 
   initialize: function(args) {
     this.bind('change:state', this.changeState);
+    this.bind('change:notes', this.populateNotes);
+
     // FIXME Call super()?
     this.maybeUnwrap(args);
+
+    this.initNotes();
+
   },
 
   changeState: function(model, new_value) {
@@ -12,14 +17,7 @@ var Story = Backbone.Model.extend({
       model.set({owned_by_id: model.collection.project.current_user.id}, true);
     }
 
-    if (new_value == "accepted" && !model.get('accepted_at')) {
-      var today = new Date();
-      today.setHours(0);
-      today.setMinutes(0);
-      today.setSeconds(0);
-      today.setMilliseconds(0);
-      model.set({accepted_at: today});
-    }
+    model.setAcceptedAt();
   },
 
   moveBetween: function(before, after) {
@@ -176,13 +174,65 @@ var Story = Backbone.Model.extend({
     return this.collection.project.users.get(this.get('owned_by_id'));
   },
 
+  requested_by: function() {
+    return this.collection.project.users.get(this.get('requested_by_id'));
+  },
+
+  created_at: function() {
+    var d = new Date(this.get('created_at'));
+    return d.format("d mmm yyyy, h:MMtt");
+  },
+
   hasDetails: function() {
-    return typeof this.get('description') == "string";
+    return (typeof this.get('description') == "string" || this.hasNotes());
   },
 
   iterationNumber: function() {
     if (this.get('state') === "accepted") {
       return this.collection.project.getIterationNumberForDate(new Date(this.get("accepted_at")));
     }
+  },
+
+  // If the story state is 'accepted', and the 'accepted_at' attribute is not
+  // set, set it to today's date.
+  setAcceptedAt: function() {
+    if (this.get('state') === "accepted" && !this.get('accepted_at')) {
+      var today = new Date();
+      today.setHours(0);
+      today.setMinutes(0);
+      today.setSeconds(0);
+      today.setMilliseconds(0);
+      this.set({accepted_at: today});
+    }
+  },
+
+  labels: function() {
+    if (typeof this.get('labels') != 'string') {
+      return [];
+    }
+    return _.map(this.get('labels').split(','), function(label) {
+      return $.trim(label);
+    });
+  },
+
+  // Initialize the notes collection on this story, and populate if necessary
+  initNotes: function() {
+    this.notes = new NoteCollection();
+    this.notes.story = this;
+    this.populateNotes();
+  },
+
+  // Resets this stories notes collection
+  populateNotes: function() {
+    var notes = this.get("notes") || [];
+    this.notes.reset(notes);
+  },
+
+  // Returns true if any of the story has any saved notes.
+  hasNotes: function() {
+    return this.notes.any(function(note) {
+      return !note.isNew();
+    });
   }
+
 });

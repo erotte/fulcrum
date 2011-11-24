@@ -17,44 +17,91 @@
     </form>
   </div>
   {{/if}}
-  <div class="story-icons">{{if $item.view.saveInProgress}}<img
-    src="/images/throbber.gif" alt="Saving ...">{{else}}<img
-    src="/images/expand.png" class="expand" alt="Expand">{{/if}}<img
-    src="/images/${story.story_type}.png" class="story_type" alt="${story.story_type}" title="${story.story_type}: ${story.id}">{{if story.estimated}}<span
-      class="estimate estimate_${story.estimate}">${story.estimate}</span>{{/if}}{{if $item.story.hasDetails()}}<img
-    src="/images/details.png" title="${story.description}"/>{{/if}}</div>
-  <div class="story-title">${story.title}{{if $item.story.owned_by()}}<abbr class="initials" title="${$item.story.owned_by().get("name")}">${$item.story.owned_by().get("initials")}</abbr>{{/if}}</div>
+  <div class="story-icons">{{if $item.view.saveInProgress}}<a
+    class="icon icons-throbber">Saving...</a>{{else}}<a
+    class="icon icons-expand expand">Expand</a>{{/if}}<span class="popover-activate"><span
+    class="icon icons-${story.story_type} story_type"
+    title="${story.story_type}: ${story.id}">${story.story_type}</span>{{if story.estimated}}<span
+    class="estimate estimate_${story.estimate}">${story.estimate}</span>{{/if}}{{if $item.story.hasDetails()}}<span
+    class="icon icons-details" title="${story.description}"></span>{{/if}}</span></div>
+  <div class="story-title">
+    {{if story.labels}}<span class="tags">${story.labels}</span>{{/if}}
+    ${story.title}
+    {{if $item.story.owned_by()}}
+      <abbr class="initials" title="${$item.story.owned_by().get("name")}">
+        ${$item.story.owned_by().get("initials")}
+      </abbr>
+    {{/if}}
+  </div>
 
 </script>
 <script id="story_form" type="text/x-jQuery-tmpl">
   <p>
-    <label for="story_title">Title</label><br/>
+    <label for="story_title"><%= Story.human_attribute_name('title') %></label><br/>
     <input type="text" id="story_title" value="${title}"/>
   </p>
 </script>
 
+<script id="story_hover" type="text/x-jQuery-tmpl">
+  <div class="small">
+    <span class="icons">
+      <span class="icon icons-${story.story_type}"></span>
+      <span class="text">${story.story_type}</span>
+      {{if story.estimated}}
+        <span class="estimate estimate_${story.estimate}">${story.estimate}</span>
+        <span class="text">${story.estimate} points</span>
+      {{/if}}
+    </span>
+    <span>Requested
+      {{if story.requested_by()}}
+      by ${$item.story.requested_by().get("name")}
+      {{/if}}
+      on ${$item.story.created_at()}</span>
+  </div>
+  {{if story.description}}
+    <h4 class="title"><%= Story.human_attribute_name('description') %></h4>
+    <div class="description">${story.description}</div>
+  {{/if}}
+  {{if $item.story.hasNotes()}}
+    <h5 class="title"><%= Note.model_name.human.pluralize %></h5>
+    {{each(index, note) $item.story.notes.saved()}}
+    <div class="note">
+      {{tmpl({note:note}) "#note_tmpl"}}
+    </div>
+    {{/each}}
+  {{/if}}
+</script>
+
+<script id="note_tmpl" type="text/x-jQuery-tmpl">
+  <p class="note">${note.get("note")}</p>
+  <div class="note_meta">
+    <span class="user">${note.userName()}</span> -
+    <span class="created_at">${note.get("created_at")}</span>
+  </div>
+</script>
+
 <script type="text/javascript">
 $(function() {
-  window.Project = new Project(<%= @project.to_json.html_safe %>);
-  window.Project.users.reset(<%= @project.users.to_json.html_safe %>);
-  window.Project.current_user = new User(<%= current_user.to_json.html_safe %>);
-  window.App = new AppView;
-  window.App.scaleToViewport();
-  $(window).resize(App.scaleToViewport);
+  var project = new Project(<%= @project.to_json.html_safe %>);
+  project.users.reset(<%= @project.users.to_json.html_safe %>);
+  project.current_user = new User(<%= current_user.to_json.html_safe %>);
+  window.projectView = new ProjectView({model: project});
+  window.projectView.scaleToViewport();
+  $(window).resize(projectView.scaleToViewport);
 
   setInterval(function() {
-    window.Project.fetch();
+    window.projectView.model.fetch();
   }, 5000);
 
   <% if notice %>
-    window.App.notice({
+    window.projectView.notice({
       title: 'Notice', text: '<%= notice %>',
       image: '<%= image_path('dialog-information.png') %>'
     });
   <% end %>
 
   <% if alert %>
-    window.App.notice({
+    window.projectView.notice({
       title: 'Alert', text: '<%= alert %>', sticky: true,
       image: '<%= image_path('dialog-warning.png') %>'
     });
@@ -63,17 +110,18 @@ $(function() {
 </script>
 
 <% content_for :title_bar do %>
-  <%= render :partial => 'projects/nav', :locals => {:project => @project} %>
+  <%= render :partial => 'projects/nav',
+             :locals => {:project => @project, :show_column_toggles => true} %>
   | <a id="add_story" href="#">Add story</a>
 <% end %>
 
 <table class="stories" width="100%">
   <thead>
     <tr>
-      <th class="done_column">Done<a class="toggle-column hide_done" title="Close">x</a></th>
-      <th class="in_progress_column">In Progress<a class="toggle-column hide_in_progress" title="Close">x</a></th>
-      <th class="backlog_column">Backlog<a class="toggle-column hide_backlog" title="Close">x</a></th>
-      <th class="chilly_bin_column">Chilly Bin<a class="toggle-column hide_chilly_bin" title="Close">x</a></th>
+      <th class="done_column">Done<a class="toggle-column hide_done" title="Close">&times;</a></th>
+      <th class="in_progress_column">In Progress<a class="toggle-column hide_in_progress" title="Close">&times;</a></th>
+      <th class="backlog_column">Backlog<a class="toggle-column hide_backlog" title="Close">&times;</a></th>
+      <th class="chilly_bin_column">Chilly Bin<a class="toggle-column hide_chilly_bin" title="Close">&times;</a></th>
     </tr>
   </thead>
   <tbody>

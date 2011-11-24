@@ -1,9 +1,11 @@
 $(function() {
   $('#add_story').click(function() {
-    window.Project.stories.add([{
+    window.projectView.model.stories.add([{
       title: "New story", events: [], editing: true
     }]);
 
+    // Show chilly bin if it's hidden
+    $('.hide_chilly_bin.pressed').click();
     var newStoryElement = $('#chilly_bin div.story:last');
     $('#chilly_bin').scrollTo(newStoryElement, 100);
   });
@@ -11,7 +13,7 @@ $(function() {
   $('div.sortable').sortable({
     handle: '.story-title', opacity: 0.6,
 
-    items: ".story",
+    items: ".story:not(.accepted)",
 
     update: function(ev, ui) {
       ui.item.trigger("sortupdate", ev, ui);
@@ -26,6 +28,7 @@ $(function() {
     $("#column-toggles").find( "."+className ).toggleClass('pressed');
   })
 
-  $('#backlog').sortable('option', 'connectWith', '#chilly_bin');
-  $('#chilly_bin').sortable('option', 'connectWith', '#backlog');
+  $('#backlog').sortable('option', 'connectWith', '#chilly_bin,#in_progress');
+  $('#chilly_bin').sortable('option', 'connectWith', '#backlog,#in_progress');
+  $('#in_progress').sortable('option', 'connectWith', '#backlog,#chilly_bin');
 });

@@ -4,7 +4,8 @@ describe('Project model', function() {
     var Story = Backbone.Model.extend({
       name: 'story',
       fetch: function() {},
-      position: function() {}
+      position: function() {},
+      labels: function() { return []; }
     });
     this.story = new Story({id: 456});
 
@@ -305,4 +306,79 @@ describe('Project model', function() {
     });
 
   });
+
+  describe("appendIteration", function() {
+
+    beforeEach(function() {
+      this.iteration = {
+        get: sinon.stub()
+      };
+    });
+
+    it("should add the first iteration to the array", function() {
+      var stub = sinon.stub(Iteration, 'createMissingIterations');
+      stub.returns([]);
+      this.project.appendIteration(this.iteration);
+      expect(_.last(this.project.iterations)).toEqual(this.iteration);
+      expect(this.project.iterations.length).toEqual(1);
+      stub.restore();
+    });
+
+    it("should create missing iterations if required", function() {
+      var spy = sinon.spy(Iteration, 'createMissingIterations');
+      this.iteration.get.withArgs('number').returns(1);
+      this.project.iterations.push(this.iteration);
+      var iteration = {
+        get: sinon.stub().withArgs('number').returns(5)
+      };
+      this.project.appendIteration(iteration, '#done');
+      expect(spy).toHaveBeenCalledWith('#done', this.iteration, iteration);
+      expect(this.project.iterations.length).toEqual(5);
+      spy.restore();
+    });
+
+  });
+
+  describe("columns", function() {
+
+    it("should define the columns", function() {
+      expect(this.project.columnIds).toEqual([
+        '#done', '#in_progress', '#backlog', '#chilly_bin'
+      ]);
+    });
+
+    it("should return the columns after a given column", function() {
+      expect(this.project.columnsAfter('#done')).toEqual([
+        '#in_progress', '#backlog', '#chilly_bin'
+      ]);
+      expect(this.project.columnsAfter('#in_progress')).toEqual([
+        '#backlog', '#chilly_bin'
+      ]);
+      expect(this.project.columnsAfter('#backlog')).toEqual(['#chilly_bin']);
+      expect(this.project.columnsAfter('#chilly_bin')).toEqual([]);
+
+      var project = this.project;
+      expect(function() {project.columnsAfter('#foobar');}).toThrow(
+        "#foobar is not a valid column"
+      );
+    });
+
+    it("should return the columns before a given column", function() {
+      expect(this.project.columnsBefore('#done')).toEqual([]);
+      expect(this.project.columnsBefore('#in_progress')).toEqual(['#done']);
+      expect(this.project.columnsBefore('#backlog')).toEqual([
+        '#done', '#in_progress'
+      ]);
+      expect(this.project.columnsBefore('#chilly_bin')).toEqual([
+        '#done', '#in_progress', '#backlog'
+      ]);
+
+      var project = this.project;
+      expect(function() {project.columnsBefore('#foobar');}).toThrow(
+        "#foobar is not a valid column"
+      );
+    });
+
+  });
+
 });

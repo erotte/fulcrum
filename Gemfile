@@ -1,6 +1,6 @@
 source 'http://rubygems.org'
 
-gem 'rails', '3.0.9'
+gem 'rails', '3.0.11'
 
 # Bundle edge Rails instead:
 # gem 'rails', :git => 'git://github.com/rails/rails.git'
@@ -55,5 +55,5 @@ end
 
 group :development, :test do
   gem 'factory_girl_rails'
-  gem 'jasmine'
+  gem 'jasmine', '1.1.0'
 end

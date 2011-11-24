@@ -1,6 +1,11 @@
 describe('StoryView', function() {
 
   beforeEach(function() {
+    window.projectView = {
+      availableTags: []
+    };
+    var Note = Backbone.Model.extend({name: 'note'});
+    var NotesCollection = Backbone.Collection.extend({model: Note});
     var Story = Backbone.Model.extend({
       name: 'story', defaults: {story_type: 'feature'},
       estimable: function() { return true; },
@@ -10,12 +15,14 @@ describe('StoryView', function() {
       errorsOn: function() { return false; },
       url: '/path/to/story',
       collection: { project: { users: { forSelect: function() {return [];} } } },
-      start: function() {}
+      start: function() {},
+      setAcceptedAt: sinon.spy()
       //moveAfter: function() {},
       //moveBefore: function() {}
     });
     this.story = new Story({id: 999, title: 'Story'});
     this.new_story = new Story({title: 'New Story'});
+    this.story.notes = this.new_story.notes = new NotesCollection();
     this.view = new StoryView({
       model: this.story
     });
@@ -47,6 +54,12 @@ describe('StoryView', function() {
       sinon.stub(this.view.model, "estimated").returns(true);
       this.view.model.set({estimate: 1});
       expect($(this.view.el)).not.toHaveClass('unestimated');
+    });
+
+    it("should have the story state class", function() {
+      expect($(this.view.el)).toHaveClass('unestimated');
+      this.view.model.set({state: 'accepted'});
+      expect($(this.view.el)).toHaveClass('accepted');
     });
 
   });
@@ -137,7 +150,7 @@ describe('StoryView', function() {
 
       expect(disable_spy).toHaveBeenCalled();
       expect(enable_spy).not.toHaveBeenCalled();
-      expect($(this.view.el).find('img.collapse').attr('src')).toEqual('/images/throbber.gif');
+      expect($(this.view.el).find('a.collapse').hasClass('icons-throbber')).toBeTruthy();
 
       this.server.respond();
 
@@ -179,6 +192,11 @@ describe('StoryView', function() {
 
       expect(this.view.saveInProgress).toBeFalsy();
     });
+
+    it("should call setAcceptedAt on the story", function() {
+      this.view.saveEdit();
+      expect(this.story.setAcceptedAt).toHaveBeenCalledOnce();
+    });
   });
 
   describe("expand collapse controls", function() {
@@ -186,7 +204,7 @@ describe('StoryView', function() {
     it("should not show the collapse control if its a new story", function() {
       this.new_story.set({editing: true});
 
-      expect($(this.new_story_view.el)).not.toContain('img.collapse');
+      expect($(this.new_story_view.el)).not.toContain('a.collapse');
     });
 
   });
@@ -196,6 +214,8 @@ describe('StoryView', function() {
     beforeEach(function() {
       this.story.collection.length = 1;
       this.story.collection.columns = function() {return [];};
+      this.story.collection.project.columnsBefore = sinon.stub();
+      this.story.collection.project.columnsAfter = sinon.stub();
     });
 
     it("sets state to unstarted if dropped on the backlog column", function() {
@@ -208,6 +228,30 @@ describe('StoryView', function() {
       this.view.sortUpdate(ev);
 
       expect(this.story.get('state')).toEqual("unstarted");
+    });
+
+    it("sets state to unstarted if dropped on the in_progress column", function() {
+
+      this.story.set({'state':'unscheduled'});
+
+      var html = $('<td id="in_progress"><div id="1"></div></td>');
+      var ev = {target: html.find('#1')};
+
+      this.view.sortUpdate(ev);
+
+      expect(this.story.get('state')).toEqual("unstarted");
+    });
+
+    it("doesn't change state if not unscheduled and dropped on the in_progress column", function() {
+
+      this.story.set({'state':'finished'});
+
+      var html = $('<td id="in_progress"><div id="1"></div></td>');
+      var ev = {target: html.find('#1')};
+
+      this.view.sortUpdate(ev);
+
+      expect(this.story.get('state')).toEqual("finished");
     });
 
     it("sets state to unscheduled if dropped on the chilly_bin column", function() {
@@ -260,6 +304,83 @@ describe('StoryView', function() {
       this.view.sortUpdate(ev);
 
       expect(this.story.get('state')).toEqual('unscheduled');
+    });
+
+  });
+
+  describe("hover box placement", function() {
+
+    it("should return right if element is in the left half of the page", function() {
+      var positionStub = sinon.stub(jQuery.fn, 'position');
+      var widthStub = sinon.stub(jQuery.fn, 'width');
+      positionStub.returns({'left': 25, 'top': 25});
+      widthStub.returns(100);
+      expect(this.view.hoverBoxPlacement()).toEqual('right');
+      positionStub.restore();
+      widthStub.restore();
+    });
+
+    it("should return left if element is in the right half of the page", function() {
+      var positionStub = sinon.stub(jQuery.fn, 'position');
+      var widthStub = sinon.stub(jQuery.fn, 'width');
+      positionStub.returns({'left': 75, 'top': 75});
+      widthStub.returns(100);
+      expect(this.view.hoverBoxPlacement()).toEqual('left');
+      positionStub.restore();
+      widthStub.restore();
+    });
+
+  });
+  describe("labels", function() {
+
+    it("should initialize tagit on edit", function() {
+      var spy = sinon.spy(jQuery.fn, 'tagit');
+      this.new_story.set({editing: true});
+      expect(spy).toHaveBeenCalled();
+      spy.restore();
+    });
+
+  });
+
+  describe("notes", function() {
+
+    it("binds change:notes to renderNotesCollection()", function() {
+      var spy = sinon.spy(this.story, 'bind');
+      var view = new StoryView({model: this.story});
+      expect(spy).toHaveBeenCalledWith('change:notes', view.renderNotesCollection);
+    });
+
+    it("binds change:notes to addEmptyNote()", function() {
+      var spy = sinon.spy(this.story, 'bind');
+      var view = new StoryView({model: this.story});
+      expect(spy).toHaveBeenCalledWith('change:notes', view.addEmptyNote);
+    });
+
+    it("adds a blank note to the end of the notes collection", function() {
+      this.view.model.notes.reset();
+      expect(this.view.model.notes.length).toEqual(0);
+      this.view.addEmptyNote();
+      expect(this.view.model.notes.length).toEqual(1);
+      expect(this.view.model.notes.last().isNew()).toBeTruthy();
+    });
+
+    it("doesn't add a blank note if the story is new", function() {
+      var stub = sinon.stub(this.view.model, 'isNew');
+      stub.returns(true);
+      this.view.model.notes.reset();
+      expect(this.view.model.notes.length).toEqual(0);
+      this.view.addEmptyNote();
+      expect(this.view.model.notes.length).toEqual(0);
+    });
+
+    it("doesn't add a blank note if there is already one", function() {
+      this.view.model.notes.last = sinon.stub().returns({
+        isNew: sinon.stub().returns(true)
+      });
+      expect(this.view.model.notes.last().isNew()).toBeTruthy();
+      var oldLength = this.view.model.notes.length;
+      this.view.addEmptyNote();
+      expect(this.view.model.notes.length).toEqual(oldLength);
     });
 
   });

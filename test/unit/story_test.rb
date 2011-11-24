@@ -114,7 +114,8 @@ class StoryTest < ActiveSupport::TestCase
     attrs = [
       "title", "accepted_at", "created_at", "updated_at", "description",
       "project_id", "story_type", "owned_by_id", "requested_by_id", "estimate",
-      "state", "position", "id", "events", "estimable", "estimated", "errors"
+      "state", "position", "id", "events", "estimable", "estimated", "errors",
+      "labels", "notes"
     ]
 
     assert_returns_json attrs, @story
@@ -178,6 +179,24 @@ class StoryTest < ActiveSupport::TestCase
     end
   end
 
+  test "delivering a story does not send an email when notifications are suppressed" do
+    @story.acting_user = Factory.create(:user)
+    @project.users << @story.acting_user
+    @project.suppress_notifications = true
+    assert_no_difference 'ActionMailer::Base.deliveries.size' do
+      @story.update_attribute :state, 'delivered'
+    end
+  end
+
+  test "delivering a story does not send an email to the requestor when email_delivery is false" do
+    @story.acting_user = Factory.create(:user)
+    @project.users << @story.acting_user
+    @story.requested_by = Factory.create(:user, :email_delivery => false)
+    assert_no_difference 'ActionMailer::Base.deliveries.size' do
+      @story.update_attribute :state, 'delivered'
+    end
+  end
+
   test "delivering a story sends no email if requested by is not set" do
     @story.acting_user = Factory.create(:user)
     @project.users << @story.acting_user
@@ -212,6 +231,19 @@ class StoryTest < ActiveSupport::TestCase
       end
     end
 
+    test "#{action}ing a story where the owner has email_#{action} set to false" do
+      @story.acting_user = Factory.create(:user)
+      if action == 'accept'
+        @story.owned_by = Factory.create(:user, :email_acceptance => false)
+      else
+        @story.owned_by = Factory.create(:user, :email_rejection => false)
+      end
+      @project.users << @story.acting_user
+      assert_no_difference 'ActionMailer::Base.deliveries.size' do
+        @story.update_attribute :state, "#{action}ed"
+      end
+    end
+
     test "#{action}ing a story sends no email if acting user is not set" do
       @story.acting_user = nil
       @story.owned_by = @story.requested_by
@@ -238,5 +270,80 @@ class StoryTest < ActiveSupport::TestCase
       end
     end
 
+  end
+
+  test "should return the CSV headers" do
+    assert_instance_of Array, Story.csv_headers
+  end
+
+  test "should return a story as a CSV row" do
+    assert_instance_of Array, @story.to_csv
+    assert_equal Story.csv_headers.length, @story.to_csv.length
+  end
+
+  test "should return a story as a CSV row with notes appended" do
+    assert_equal 0, @story.notes.size
+    @story.notes << Factory.create(:note, :story => @story)
+    assert_equal 1, @story.notes.size
+    assert_equal Story.csv_headers.length + 1, @story.to_csv.length
+  end
+
+  test "notify_users should include requestor" do
+    assert @story.notify_users.include?(@story.requested_by)
+  end
+
+  test "notify_users should include owner" do
+    user = Factory.create(:user)
+    @project.users << user
+    @story.owned_by = user
+    assert @story.notify_users.include?(user)
+  end
+
+  test "notify_users should include users who have added notes" do
+    user = Factory.create(:user)
+    @project.users << user
+    Factory.create(:note, :story => @story, :user => user)
+    assert @story.notify_users.include?(user)
+  end
+
+  test "notify_users should not include any nil values" do
+    @story.owned_by = nil
+    assert !@story.notify_users.include?(nil)
+  end
+
+  test "notify_users should not include the same user twice" do
+    @story.owned_by = @story.requested_by = @user
+    assert_equal [@user], @story.notify_users
+  end
+
+  test "should create notes from a CSV row" do
+    row = [
+      ["Note", "Note 1 (#{@user.name} - Jan 5, 2011)"],
+      ["Note", "Note 2 (Nosuch User - Unparseable date)"],
+      ["Note", "Note 3"]
+    ]
+
+    notes = []
+    assert_difference 'Note.count', row.length do
+      notes = @story.notes.from_csv_row row
+    end
+
+    # Notes should have the right body text
+    assert_equal "Note 1", notes[0].note
+    assert_equal "Note 2", notes[1].note
+    assert_equal "Note 3", notes[2].note
+
+    # Notes should be assigned to the correct user
+    assert_equal @user, notes[0].user
+    assert_nil notes[1].user
+    assert_nil notes[2].user
+
+    # Notes should have the correct created_at time
+    assert_equal DateTime.parse('Jan 5, 2011'), notes[0].created_at
+
+    # Notes should be asigned to the correct story
+    notes.each do |note|
+      assert_equal @story, note.story
+    end
   end
 end

@@ -1,6 +1,8 @@
 var Story = Backbone.Model.extend({
   name: 'story',
 
+  timestampFormat: 'd mmm yyyy, h:MMtt',
+
   initialize: function(args) {
     this.bind('change:state', this.changeState);
     this.bind('change:notes', this.populateNotes);
@@ -9,6 +11,7 @@ var Story = Backbone.Model.extend({
     this.maybeUnwrap(args);
 
     this.initNotes();
+    this.setColumn();
 
   },
 
@@ -18,6 +21,7 @@ var Story = Backbone.Model.extend({
     }
 
     model.setAcceptedAt();
+    model.setColumn();
   },
 
   moveBetween: function(before, after) {
@@ -67,7 +71,7 @@ var Story = Backbone.Model.extend({
     story_type: "feature"
   },
 
-  column: function() {
+  setColumn: function() {
 
     var column = '#in_progress';
 
@@ -89,7 +93,7 @@ var Story = Backbone.Model.extend({
         break;
     }
 
-    return column;
+    this.column = column;
   },
 
   clear: function() {
@@ -180,7 +184,7 @@ var Story = Backbone.Model.extend({
 
   created_at: function() {
     var d = new Date(this.get('created_at'));
-    return d.format("d mmm yyyy, h:MMtt");
+    return d.format(this.timestampFormat);
   },
 
   hasDetails: function() {

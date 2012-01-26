@@ -36,8 +36,29 @@ set :repository, "git@github.com:erotte/#{application}.git"
 # Revision defaults to master
 # set :revision, "origin/develop"
 set :bundle_cmd, "/usr/local/rvm/gems/ree-1.8.7-2011.03/bin/bundle"
+set :rake_cmd, "#{bundle_cmd} exec rake"
+set :skip_scm, false
 set :web_command, "/etc/init.d/nginx"
-set :symlinks, { 'config/database.yml' => 'config/database.yml' }
+set :copy_shared, {
+  'config/database.yml' => 'config/database.yml' }
+set :symlinks, {
+  'assets'              => 'public/assets',
+  'config/database.yml' => 'config/database.yml' }
+
+
+# replace compass_precomplie with this one when app is 3.1
+# vlad:assets:precompile
+ 
+set :deploy_tasks, %w(
+  vlad:update
+  vlad:symlink
+  vlad:bundle:install
+  vlad:compass:compile_css
+  vlad:migrate
+  vlad:start_app
+  vlad:cleanup)
+
+
 
 role :app, domain
 role :web, domain
@@ -46,12 +67,12 @@ role :db,  domain, :primary => true
 require 'bundler/vlad'
 
 namespace :vlad do
-  desc "Full deployment cycle: Update, install bundle, migrate, restart, cleanup"
-  remote_task :deploy, :roles => :app do
-    %w(update symlink bundle:install migrate compass:compile_css start_app cleanup).each do |task|
-      Rake::Task["vlad:#{task}"].invoke
-    end
-  end
+  # desc "Full deployment cycle: Update, install bundle, migrate, restart, cleanup"
+  # remote_task :deploy, :roles => :app do
+  #   %w(update symlink bundle:install migrate compass:compile_css start_app cleanup).each do |task|
+  #     Rake::Task["vlad:#{task}"].invoke
+  #   end
+  # end
 
   namespace :compass do
     desc "compile compressed stylesheets in production mode (remotely)"

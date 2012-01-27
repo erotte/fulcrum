@@ -35,7 +35,7 @@ class Project < ActiveRecord::Base
   accepts_nested_attributes_for :users, :reject_if => :all_blank
 
   has_many :stories, :dependent => :destroy do
-
+   
     # Populates the stories collection from a CSV string.
     def from_csv(csv_string)
 
@@ -66,6 +66,8 @@ class Project < ActiveRecord::Base
 
   end
   has_many :changesets, :dependent => :destroy
+  
+  default_scope order('start_date DESC')
 
   attr_accessor_with_default :suppress_notifications, false
 

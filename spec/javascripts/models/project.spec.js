@@ -305,7 +305,86 @@ describe('Project model', function() {
       expect(this.project.velocity()).toEqual(1);
     });
 
+    describe("when velocity is not set", function() {
+      describe("velocityIsFake", function() {
+        it("should be false", function() {
+          expect(this.project.velocityIsFake()).toBeFalsy();
+        });
+      });
+
+      it("returns the default velocity", function() {
+          this.project.set({'default_velocity': 99});
+          expect(this.project.velocity()).toEqual(99);
+      });
+    });
+
+    describe("when velocity is set to 20", function() {
+
+      beforeEach(function() {
+        this.project.velocity(20);
+      });
+
+      describe("velocityIsFake", function() {
+        it("should be true", function() {
+          expect(this.project.velocityIsFake()).toBeTruthy();
+        });
+      });
+
+      it("returns 20", function() {
+          expect(this.project.velocity()).toEqual(20);
+      });
+    });
+
+    describe("when velocity is set to less than 1", function() {
+
+      beforeEach(function() {
+        this.project.velocity(0);
+      });
+
+      it("sets the velocity to 1", function() {
+        expect(this.project.velocity()).toEqual(1);
+      });
+
+    });
+
+    describe("when velocity is set to the same as the real value", function() {
+
+      describe("velocity", function() {
+        beforeEach(function() {
+          this.project.set({'userVelocity': 20, velocityIsFake: true});
+          this.project.calculateVelocity = function() { return 20; };
+          this.project.velocity(20);
+        });
+
+        it("should unset userVelocity", function() {
+          expect(this.project.get('userVelocity')).toBeUndefined();
+        });
+
+        it("should be false", function() {
+          expect(this.project.velocityIsFake()).toBeFalsy();
+        });
+      });
+    });
+
+    describe("revertVelocity", function() {
+
+      beforeEach(function() {
+        this.project.set({userVelocity: 999, velocityIsFake: true});
+      });
+
+      it("unsets userVelocity", function() {
+        this.project.revertVelocity();
+        expect(this.project.get('userVelocity')).toBeUndefined();
+      });
+
+      it("sets velocityIsFake to false", function() {
+        this.project.revertVelocity();
+        expect(this.project.velocityIsFake()).toBeFalsy();
+      });
+    });
+
   });
+
 
   describe("appendIteration", function() {
 

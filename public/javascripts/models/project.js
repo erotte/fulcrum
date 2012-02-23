@@ -164,14 +164,41 @@ var Project = Backbone.Model.extend({
     }
   },
 
-  velocity: function() {
+  // Override the calculated velocity with a user defined value.  If this
+  // value is different to the calculated velocity, the velocityIsFake
+  // attribute will be set to true.
+  velocity: function(userVelocity) {
+    if(userVelocity !== undefined) {
+
+      if(userVelocity < 1) {
+        userVelocity = 1;
+      }
+
+      if(userVelocity === this.calculateVelocity()) {
+        this.unset('userVelocity');
+      } else {
+        this.set({userVelocity: userVelocity});
+      }
+    }
+    if(this.get('userVelocity')) {
+      return this.get('userVelocity');
+    } else {
+      return this.calculateVelocity();
+    }
+  },
+
+  velocityIsFake: function() {
+    return (this.get('userVelocity') !== undefined);
+  },
+
+  calculateVelocity: function() {
     if (this.doneIterations().length === 0) {
       return this.get('default_velocity');
     } else {
       // TODO Make number of iterations configurable
       var numIterations = 3;
       var iterations = this.doneIterations();
-      
+
       // Take a maximum of numIterations from the end of the array
       if (iterations.length > numIterations) {
         iterations = iterations.slice(iterations.length - numIterations);
@@ -184,6 +211,10 @@ var Project = Backbone.Model.extend({
       var velocity = Math.floor(sum / pointsArray.length);
       return velocity < 1 ? 1 : velocity;
     }
+  },
+
+  revertVelocity: function() {
+    this.unset('userVelocity');
   },
 
   doneIterations: function() {
@@ -242,6 +273,7 @@ var Project = Backbone.Model.extend({
       'column': '#backlog', 'maximum_points': this.velocity()
     });
     this.appendIteration(backlogIteration, '#backlog');
+
 
     _.each(this.stories.column('#backlog'), function(story) {
 
